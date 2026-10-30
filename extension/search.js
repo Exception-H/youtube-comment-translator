@@ -376,16 +376,33 @@
     ytdSearch.appendChild(view.host);
     hideNative(view, ytdSearch);
     layout(view);
-    void sendRuntime({ type: 'SEARCH_START', session: view.session }).catch(() => {});
+    void beginView(view);
+    return view;
+  }
+
+  async function beginView(view) {
+    if (!isLive(view)) return;
+    try {
+      const started = await sendRuntime({ type: 'SEARCH_START', session: view.session }, 8000);
+      if (started && started.ok === false && started.error === 'DISABLED') {
+        if (isLive(view)) {
+          setPaneState(view.panes[ZH], 'error', errorText({ code: 'DISABLED' }));
+          setPaneState(view.panes[EN], 'error', errorText({ code: 'DISABLED' }));
+        }
+        return;
+      }
+    } catch (error) {
+      handleRuntimeError(error && error.message);
+    }
+    if (!isLive(view)) return;
     view.source = createSource(view);
     if (!view.source) {
       failPane(view, view.panes[ZH], view.sourceError || sourceError('SEARCH_SOURCE_MISSING'), { retry: true });
       failPane(view, view.panes[EN], view.sourceError || sourceError('SEARCH_SOURCE_MISSING'), { retry: true });
-      return view;
+      return;
     }
     void startPaneSearch(view, view.panes[ZH], view.query);
     void translateQuery(view);
-    return view;
   }
 
   function createSource(view) {

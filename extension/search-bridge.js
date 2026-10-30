@@ -1,7 +1,7 @@
 /* Search-only translation bridge. Never reads the comment service or its key. */
 (function (root) {
   'use strict';
-  const TYPES = new Set(['SEARCH_START', 'SEARCH_END', 'SEARCH_TRANSLATE', 'OPEN_DUAL_SETTINGS']);
+  const TYPES = new Set(['SEARCH_START', 'SEARCH_END', 'SEARCH_TRANSLATE', 'TITLE_TRANSLATE', 'OPEN_DUAL_SETTINGS']);
   const TTL = 6 * 60 * 60 * 1000;
   const LIMIT = 400;
   function shared() { return root.YTC; }
@@ -53,14 +53,43 @@
       this.timer = null; this.cache.clear(); this.inflight.clear();
       await this.chrome.storage.session.remove('searchTranslations');
     }
+    async translateTitleOnly(text) {
+      const isCurrent = () => true;
+      await this.ready;
+      const key = await this.key('title', text, '');
+      const cached = this.cache.get(key);
+      if (cached && this.now() - cached.time >= 0 && this.now() - cached.time < TTL) return { ok: true, text: cached.text, model: cached.model, cached: true };
+      const jobKey = 'title-only:' + key;
+      if (this.inflight.has(jobKey)) return this.inflight.get(jobKey);
+      const epoch = this.cacheEpoch;
+      const pending = (async () => {
+        if (!await this.chrome.permissions.contains({ origins: ['https://index-translate.bilibili.com/*'] })) throw fail('AI_PERMISSION');
+        await this.prepare();
+        const result = await this.client.translateTitle(text, { isCurrent, query: '' });
+        await this.enabled();
+        if (epoch === this.cacheEpoch) {
+          this.cache.set(key, { text: result.text, model: result.model || '', time: this.now() });
+          this.persist();
+        }
+        return { ok: true, text: result.text, model: result.model || '', cached: false };
+      })();
+      this.inflight.set(jobKey, pending);
+      try { return await pending; } finally { if (this.inflight.get(jobKey) === pending) this.inflight.delete(jobKey); }
+    }
     async handle(message, sender) {
       const type = message?.type;
       if (!this.accepts(type)) throw fail('SEARCH_SESSION');
-      const owner = senderTab(sender, !['SEARCH_END', 'OPEN_DUAL_SETTINGS'].includes(type));
+      const owner = senderTab(sender, !['SEARCH_END', 'OPEN_DUAL_SETTINGS', 'TITLE_TRANSLATE'].includes(type));
       if (type === 'OPEN_DUAL_SETTINGS') {
         if (this.chrome.tabs?.create) await this.chrome.tabs.create({ url: this.chrome.runtime.getURL('options.html#dual-search') });
         else await this.chrome.runtime.openOptionsPage();
         return { ok: true };
+      }
+      if (type === 'TITLE_TRANSLATE') {
+        await this.enabled();
+        const heading = typeof message.text === 'string' ? shared().normalize(message.text) : '';
+        if (!heading || heading.length > 500) throw fail('TOO_LONG');
+        return this.translateTitleOnly(heading);
       }
       const session = typeof message.session === 'string' && /^[a-z0-9_-]{1,80}$/i.test(message.session) ? message.session : '';
       if (!session) throw fail('SEARCH_SESSION');

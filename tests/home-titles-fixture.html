@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>首页标题翻译 · 夹具</title>
+<link rel="stylesheet" href="/extension/home-titles.css">
+<style>
+  body { font-family: Roboto, Arial, sans-serif; margin: 0; padding: 16px; }
+  ytd-rich-item-renderer { display: block; margin: 20px 0; padding: 12px; border: 1px solid #ddd; }
+  #video-title, #video-title-link { display: block; font-size: 18px; font-weight: 600; color: #0f0f0f; text-decoration: none; }
+</style>
+</head>
+<body>
+<ytd-rich-grid-renderer>
+  <ytd-rich-item-renderer><a id="video-title-link" href="/watch?v=aaaaaaaaaaa"><span id="video-title">How to fix Windows 11 lag fast</span></a></ytd-rich-item-renderer>
+  <ytd-rich-item-renderer><a id="video-title-link" href="/watch?v=bbbbbbbbbbb"><span id="video-title">Best budget laptop review 2026</span></a></ytd-rich-item-renderer>
+  <ytd-rich-item-renderer><a id="video-title-link" href="/watch?v=ccccccccccc"><span id="video-title">如何修复电脑卡顿问题</span></a></ytd-rich-item-renderer>
+  <ytd-rich-item-renderer><yt-lockup-view-model><div class="yt-lockup-metadata-view-model__title">Python tutorial for beginners</div></yt-lockup-view-model></ytd-rich-item-renderer>
+</ytd-rich-grid-renderer>
+<pre id="result">等待测试…</pre>
+<script>
+  window.__homeChecks = { done: false };
+  window.chrome = {
+    runtime: {
+      lastError: undefined,
+      sendMessage(message, callback) {
+        setTimeout(() => callback({ ok: true, text: '中文：' + message.text }), 8);
+      }
+    },
+    storage: {
+      local: { get: async () => ({ settings: { dualSearch: true } }) },
+      onChanged: { addListener() {} }
+    }
+  };
+</script>
+<script src="/extension/shared.js"></script>
+<script src="/extension/home-titles.js"></script>
+<script>
+  (function () {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const lines = Array.from(document.querySelectorAll('.ytcc-title-translation'));
+      if (lines.length >= 3 || Date.now() - started > 4000) {
+        clearInterval(timer);
+        const englishItem = document.querySelectorAll('ytd-rich-item-renderer')[0];
+        const chineseItem = document.querySelectorAll('ytd-rich-item-renderer')[2];
+        window.__homeChecks = {
+          done: true,
+          translatedLines: lines.length,
+          sample: lines.map(n => n.textContent),
+          englishHasTranslation: !!englishItem.querySelector('.ytcc-title-translation'),
+          chineseHasTranslation: !!chineseItem.querySelector('.ytcc-title-translation'),
+          chineseState: chineseItem.querySelector('#video-title')?.getAttribute('data-ytcc-title-state') || ''
+        };
+        document.getElementById('result').textContent = JSON.stringify(window.__homeChecks);
+      }
+    }, 60);
+  })();
+</script>
+</body>
+</html>

@@ -7,7 +7,10 @@ const root = path.resolve(__dirname, '..');
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png' };
 const server = http.createServer((req, res) => {
   const requestPath = new URL(req.url, 'http://127.0.0.1').pathname;
-  const relative = requestPath === '/results' ? 'tests/search-fixture.html' : ['/search-fixture-api.js', '/search-browser-checks.js'].includes(requestPath) ? 'tests' + requestPath : requestPath.replace(/^\/+/, '');
+  const relative = requestPath === '/results' ? 'tests/search-fixture.html'
+    : requestPath === '/' ? 'tests/home-titles-fixture.html'
+    : ['/search-fixture-api.js', '/search-browser-checks.js'].includes(requestPath) ? 'tests' + requestPath
+    : requestPath.replace(/^\/+/, '');
   const target = path.resolve(root, relative);
   if (!target.startsWith(root + path.sep)) { res.writeHead(403); res.end(); return; }
   fs.readFile(target, (error, data) => {
