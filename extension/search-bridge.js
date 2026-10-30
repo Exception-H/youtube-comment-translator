@@ -6,13 +6,17 @@
   const LIMIT = 400;
   function shared() { return root.YTC; }
   function fail(code) { return new Error(code); }
-  function senderTab(sender, requireSearch = true) {
+  function senderTab(sender) {
     let url;
     try { url = new URL(sender?.url || ''); } catch { throw fail('SEARCH_SESSION'); }
     if (url.protocol !== 'https:' || !['www.youtube.com', 'm.youtube.com'].includes(url.hostname) || !Number.isInteger(sender?.tab?.id)) throw fail('SEARCH_SESSION');
-    const query = shared().normalize(url.searchParams.get('search_query'));
-    if (requireSearch && (url.pathname !== '/results' || !query || query.length > 300 || !/\p{Script=Han}/u.test(query))) throw fail('SEARCH_SESSION');
-    return { id: sender.tab.id, query };
+    // During a YouTube SPA navigation sender.url can still describe the previous
+    // page, so the search term is read from the message. This URL value is only a
+    // fallback for older callers.
+    return { id: sender.tab.id, query: shared().normalize(url.searchParams.get('search_query')) };
+  }
+  function isQuery(value) {
+    return typeof value === 'string' && value.length > 0 && value.length <= 300 && /\p{Script=Han}/u.test(value);
   }
   class Controller {
     constructor({ chrome, client, prepare, now = Date.now }) {
@@ -79,7 +83,7 @@
     async handle(message, sender) {
       const type = message?.type;
       if (!this.accepts(type)) throw fail('SEARCH_SESSION');
-      const owner = senderTab(sender, !['SEARCH_END', 'OPEN_DUAL_SETTINGS', 'TITLE_TRANSLATE'].includes(type));
+      const owner = senderTab(sender);
       if (type === 'OPEN_DUAL_SETTINGS') {
         if (this.chrome.tabs?.create) await this.chrome.tabs.create({ url: this.chrome.runtime.getURL('options.html#dual-search') });
         else await this.chrome.runtime.openOptionsPage();
@@ -100,8 +104,16 @@
         return { ok: true };
       }
       if (this.ended.has(owner.id + ':' + session)) throw fail('SEARCH_SESSION');
+      const seq = Number.isFinite(message.seq) ? Math.floor(message.seq) : null;
+      const provided = typeof message.query === 'string' ? shared().normalize(message.query) : '';
+      const hasQueryField = Object.prototype.hasOwnProperty.call(message, 'query');
+      const resolved = isQuery(provided) ? provided : (!hasQueryField && isQuery(owner.query)) ? owner.query : '';
       if (type === 'SEARCH_START') {
-        this.sessions.set(owner.id, { session, query: owner.query });
+        if (!resolved) throw fail('SEARCH_SESSION');
+        const current = this.sessions.get(owner.id);
+        if (seq !== null && current && Number.isFinite(current.seq) && seq < current.seq) throw fail('SEARCH_SESSION');
+        if (seq !== null && current && Number.isFinite(current.seq) && seq === current.seq && current.session !== session) throw fail('SEARCH_SESSION');
+        this.sessions.set(owner.id, { session, seq: seq === null ? (Number(current?.seq) || 0) : seq, query: resolved });
         if (this.sessions.size > 100) this.sessions.delete(this.sessions.keys().next().value);
         try { await this.enabled(); } catch (error) { if (this.active(owner.id, session)) this.sessions.delete(owner.id); throw error; }
         if (!this.active(owner.id, session)) throw fail('SEARCH_SESSION');
@@ -110,16 +122,21 @@
       await this.enabled();
       const purpose = message.purpose;
       const text = typeof message.text === 'string' ? shared().normalize(message.text) : '';
-      const query = typeof message.query === 'string' ? shared().normalize(message.query) : '';
       if (!['query', 'title'].includes(purpose) || !text || text.length > (purpose === 'query' ? 300 : 500)) throw fail('TOO_LONG');
-      if (query !== owner.query || (purpose === 'query' && text !== query)) throw fail('SEARCH_SESSION');
+      if (!resolved) throw fail('SEARCH_SESSION');
+      if (purpose === 'query' && text !== resolved) throw fail('SEARCH_SESSION');
       // A service-worker restart can lose the in-memory owner; the current page
       // may reestablish it, but an older session cannot replace a newer one.
-      if (!this.sessions.has(owner.id)) this.sessions.set(owner.id, { session, query });
+      let current = this.sessions.get(owner.id);
+      const expected = current && typeof current.query === 'string' && current.query ? current.query : resolved;
+      if (resolved !== expected) throw fail('SEARCH_SESSION');
+      if (seq !== null && current && Number.isFinite(current.seq) && seq < current.seq) throw fail('SEARCH_SESSION');
+      if (!current) this.sessions.set(owner.id, { session, seq: seq === null ? 0 : seq, query: resolved });
+      else if (seq !== null && Number.isFinite(current.seq) && seq > current.seq) this.sessions.set(owner.id, { session, seq, query: resolved });
       if (!this.active(owner.id, session)) throw fail('SEARCH_SESSION');
       const isCurrent = () => this.active(owner.id, session);
       await this.ready;
-      const key = await this.key(purpose, text, query);
+      const key = await this.key(purpose, text, resolved);
       const cached = this.cache.get(key);
       if (cached && this.now() - cached.time >= 0 && this.now() - cached.time < TTL) return { ok: true, text: cached.text, model: cached.model, cached: true };
       const jobKey = owner.id + ':' + session + ':' + key;
@@ -131,7 +148,7 @@
         await this.prepare();
         const result = purpose === 'query'
           ? await this.client.translateQuery(text, { isCurrent })
-          : await this.client.translateTitle(text, { isCurrent, query });
+          : await this.client.translateTitle(text, { isCurrent, query: resolved });
         if (!isCurrent()) throw fail('SEARCH_SESSION');
         await this.enabled();
         if (epoch === this.cacheEpoch) {

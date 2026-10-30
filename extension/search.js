@@ -115,6 +115,15 @@
     return (PREFIX.replace(/[^a-z0-9_-]/g, '') + '-' + hex).slice(0, 80);
   }
 
+  let seqCounter = 0;
+  function nextSeq() {
+    let previous = 0;
+    try { previous = Number(sessionStorage.getItem('ytcc-search-seq')) || 0; } catch { /* storage unavailable */ }
+    seqCounter = Math.max(previous + 1, Date.now(), seqCounter + 1);
+    try { sessionStorage.setItem('ytcc-search-seq', String(seqCounter)); } catch { /* storage unavailable */ }
+    return seqCounter;
+  }
+
   function isContextError(message) {
     // A missing response port is not the same as an invalidated extension:
     // START/END are intentionally fire-and-forget and may have no responder.
@@ -167,13 +176,14 @@
     });
   }
 
-  async function translate(purpose, text, query, session) {
+  async function translate(purpose, text, query, session, seq) {
     const response = await sendRuntime({
       type: 'SEARCH_TRANSLATE',
       purpose,
       text,
       query,
-      session
+      session,
+      seq
     }, TRANSLATE_TIMEOUT_MS);
     if (!response || response.ok !== true) {
       const code = String((response && (response.error || response.code)) || 'TRANSLATE_FAILED');
@@ -358,6 +368,7 @@
       query: context.query,
       sp: context.sp,
       session: newSession(),
+      seq: nextSeq(),
       epoch: ++state.epoch,
       controller: new AbortController(),
       host: null,
@@ -383,9 +394,9 @@
   async function beginView(view) {
     if (!isLive(view)) return;
     try {
-      const started = await sendRuntime({ type: 'SEARCH_START', session: view.session }, 8000);
-      if (started && started.ok === false && started.error === 'DISABLED') {
-        if (isLive(view)) {
+      const started = await sendRuntime({ type: 'SEARCH_START', session: view.session, seq: view.seq, query: view.query }, 8000);
+      if (started && started.ok === false) {
+        if (isLive(view) && started.error === 'DISABLED') {
           setPaneState(view.panes[ZH], 'error', errorText({ code: 'DISABLED' }));
           setPaneState(view.panes[EN], 'error', errorText({ code: 'DISABLED' }));
         }
@@ -631,7 +642,7 @@
     }
     restoreNative(view);
     try { view.host.remove(); } catch { /* already removed */ }
-    void sendRuntime({ type: 'SEARCH_END', session: view.session }).catch(() => {});
+    void sendRuntime({ type: 'SEARCH_END', session: view.session, seq: view.seq }).catch(() => {});
   }
 
   function layout(view) {
@@ -1050,7 +1061,7 @@
     setPaneState(pane, 'loading', '正在翻译英文关键词…');
     updateMore(pane);
     try {
-      const text = await translate('query', view.query, view.query, view.session);
+      const text = await translate('query', view.query, view.query, view.session, view.seq);
       if (!isLive(view)) return;
       pane.queryState = 'done';
       setPaneQuery(pane, text, 'en');
@@ -1133,7 +1144,7 @@
     }
     pane.titleActive = true;
     rec.titleState = 'active';
-    translate('title', rec.item.title, view.query, view.session).then(text => {
+    translate('title', rec.item.title, view.query, view.session, view.seq).then(text => {
       if (!isLive(view) || rec.generation !== pane.generation || pane.cards.get(rec.item.id) !== rec) return;
       if (!text || (text === rec.item.title && !CHINESE.test(text))) {
         rec.titleState = 'failed';

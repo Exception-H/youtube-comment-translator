@@ -1,6 +1,9 @@
 # 评论译读 · YouTube 中文评论
 
-版本：1.5.1。可直接加载到 Chrome 的 Manifest V3 扩展。
+版本：1.5.2。可直接加载到 Chrome 的 Manifest V3 扩展。
+
+1.5.2 修复：
+- **修复在搜索框输入后右栏报“当前搜索已结束”**：YouTube 单页跳转时，后台读到的来源地址可能仍是上一页，导致搜索会话被误拒。现在关键词由扩展显式传给后台，并给每次搜索递增序号，旧视图的迟到消息不会覆盖新搜索。真实浏览器输入并连续搜索两次均已验证正常；刷新后正常的情况与此一致。
 
 1.5.1 修复与增强：
 - **修复右栏英文结果偶发“当前搜索已结束”**：新建搜索时会先确认后台会话建立，再发起英文关键词翻译，避免沿用上一个搜索的旧会话。
@@ -10,11 +13,11 @@
 
 评论翻译的主推荐仍是 **B站 Index-Translate · 官方免费公网 API**：不用登录、不用注册、不需要 API Key。原来的 Google 免密钥翻译、硅基流动（SiliconFlow）零价模式、OpenRouter 仅免费模式、DeepSeek 和自定义 OpenAI 兼容接口都保留，但不再作为默认推荐。升级不会强制切换 provider，也不会把旧配置改成 B站。
 
-安装包为 `评论译读-Chrome-v1.5.1.zip`，从 [GitHub Releases](https://github.com/Exception-H/youtube-comment-translator/releases/latest) 下载。也可以下载仓库源码，直接加载其中的 `extension` 目录。
+安装包为 `评论译读-Chrome-v1.5.2.zip`，从 [GitHub Releases](https://github.com/Exception-H/youtube-comment-translator/releases/latest) 下载。也可以下载仓库源码，直接加载其中的 `extension` 目录。
 
 ## 已安装用户如何更新
 
-1. 解压 `评论译读-Chrome-v1.5.1.zip`。
+1. 解压 `评论译读-Chrome-v1.5.2.zip`。
 2. 用解压后 `extension` 文件夹中的文件，覆盖原先已加载的 `extension` 文件夹内容。保留原文件夹路径，可以保留扩展设置。
 3. 打开 `chrome://extensions`，在「评论译读」上点击「重新加载」。
 4. 刷新 YouTube 标签页。
