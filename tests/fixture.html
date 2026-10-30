@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>评论译读 · 集成测试</title><link rel="stylesheet" href="../extension/content.css"><style>body{max-width:850px;margin:36px auto;padding:0 24px;font:15px/1.6 Arial,'Microsoft YaHei',sans-serif;color:#202124}header{border-bottom:1px solid #ddd;padding-bottom:18px}ytd-comment-view-model,ytd-comment-renderer{display:block;margin:26px 0}small{color:#666}#far{margin-top:2400px}.author{font-size:12px;font-weight:700;margin-bottom:4px}#results{white-space:pre-wrap}</style></head>
+<body><header><h1>评论译读 · 测试评论区</h1><p>模拟 YouTube 的动态评论结构，使用本地模拟翻译，不发送网络请求。</p></header>
+<ytd-comments id="comments">
+<ytd-comment-view-model id="english"><div class="author">@viewer</div><div id="content-text">Thank you for sharing this video!</div></ytd-comment-view-model>
+<ytd-comment-renderer id="chinese"><div class="author">@中文观众</div><div id="content-text">谢谢分享，这个视频很有帮助。</div></ytd-comment-renderer>
+<ytd-comment-view-model id="japanese"><div class="author">@日本の視聴者</div><div id="content-text">素晴らしい動画ですね。</div></ytd-comment-view-model>
+<ytd-comment-view-model id="retry"><div class="author">@retry</div><div id="content-text">Retry me</div></ytd-comment-view-model>
+<ytd-comment-view-model id="unsafe"><div class="author">@security</div><div id="content-text">Literal HTML</div></ytd-comment-view-model>
+<ytd-comment-view-model id="far"><div class="author">@below-the-fold</div><div id="content-text">Far away comment</div></ytd-comment-view-model>
+</ytd-comments><pre id="results"></pre>
+<script src="fixture-api.js"></script><script src="../extension/shared.js"></script><script src="../extension/content.js"></script><script src="browser-checks.js"></script>
+</body></html>

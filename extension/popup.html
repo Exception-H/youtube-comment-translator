@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>评论译读</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="shared.js" defer></script>
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <main class="popup">
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <div>
+        <h1>评论译读</h1>
+        <p class="brand-caption">让 YouTube 评论，读起来更近。</p>
+      </div>
+      <span class="language-mark" aria-hidden="true">译</span>
+    </header>
+
+    <div class="reading-sample" aria-hidden="true">
+      <span class="sample-original">A different voice. A shared moment.</span>
+      <span class="sample-translation">不同的声音，同一个此刻。</span>
+    </div>
+
+    <section class="service-summary" aria-labelledby="serviceHeading">
+      <div><h2 id="serviceHeading">翻译服务</h2><p id="providerStatus" class="provider-status" role="status" aria-live="polite">正在读取…</p></div>
+      <button id="openAISettings" class="settings-button" type="button">AI 设置</button>
+    </section>
+
+    <section class="settings" aria-labelledby="settingsHeading">
+      <div class="section-heading">
+        <h2 id="settingsHeading">阅读偏好</h2>
+        <span id="saveStatus" class="save-status" role="status" aria-live="polite">正在加载…</span>
+      </div>
+      <label class="setting-row enabled-row" for="enabled">
+        <span class="setting-copy"><span class="setting-title">自动翻译评论</span><span class="setting-hint">滚动到评论时，自动译成中文</span></span>
+        <input id="enabled" class="switch" type="checkbox" role="switch" disabled>
+      </label>
+      <div class="setting-row">
+        <label class="setting-title" for="display">显示方式</label>
+        <select id="display" disabled>
+          <option value="bilingual">原文 + 中文</option>
+          <option value="translation">只看中文</option>
+        </select>
+      </div>
+      <label class="setting-row skip-row" for="skipChinese">
+        <span class="setting-copy"><span class="setting-title">跳过中文评论</span><span class="setting-hint">主要为中文的评论保持原样</span></span>
+        <input id="skipChinese" type="checkbox" disabled>
+      </label>
+      <label class="setting-row dual-search-row" for="dualSearch">
+        <span class="setting-copy"><span class="setting-title">中英双搜</span><span class="setting-hint">搜索结果并排显示中英两路</span></span>
+        <input id="dualSearch" class="switch" type="checkbox" role="switch" disabled>
+      </label>
+    </section>
+
+    <section class="page-section" aria-labelledby="pageHeading">
+      <div class="section-heading">
+        <h2 id="pageHeading">当前页面</h2>
+        <button id="refreshStatus" class="text-button" type="button" disabled>刷新状态</button>
+      </div>
+      <p id="pageStatus" class="page-status" role="status" aria-live="polite">正在连接当前标签页…</p>
+      <dl class="translation-counts" aria-label="当前页面翻译统计">
+        <div><dt>已翻译</dt><dd id="translated">—</dd></div>
+        <div><dt>处理中</dt><dd id="pending">—</dd></div>
+        <div><dt>失败</dt><dd id="failed">—</dd></div>
+      </dl>
+      <div class="actions">
+        <button id="retryFailed" class="primary-button" type="button" disabled>立即重试失败评论</button>
+        <button id="clearCache" class="secondary-button" type="button" disabled>清除缓存</button>
+      </div>
+      <p id="actionStatus" class="action-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <footer class="privacy">
+      <p>评论会发送至所选翻译服务；AI 模式可附带标题/父评论。密钥在本机 AI 设置中管理。</p>
+      <p>仅免费模式自动批量翻译；遇限流暂停，不付费回退。缓存仅保留在本次浏览器会话中。</p>
+    </footer>
+  </main>
+</body>
+</html>

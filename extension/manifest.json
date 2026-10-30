@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "评论译读 · YouTube 中文评论",
+  "version": "1.5.0",
+  "description": "YouTube 评论中文翻译与中英双搜：中文输入、双栏结果、英文标题中文显示。",
+  "minimum_chrome_version": "109",
+  "permissions": ["storage", "activeTab", "declarativeNetRequestWithHostAccess"],
+  "host_permissions": ["https://clients5.google.com/*"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "background": {"service_worker": "background.js"},
+  "options_ui": {"page": "options.html", "open_in_tab": true},
+  "action": {"default_popup": "popup.html", "default_title": "评论译读", "default_icon": {"16":"icons/icon16.png", "32":"icons/icon32.png"}},
+  "icons": {"16":"icons/icon16.png", "32":"icons/icon32.png", "48":"icons/icon48.png", "128":"icons/icon128.png"},
+  "content_scripts": [{
+    "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+    "js": ["shared.js", "search-source.js", "search.js", "content.js"],
+    "css": ["content.css", "search.css"],
+    "run_at": "document_idle"
+  }]
+}

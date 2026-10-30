@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>中英双搜 · 集成测试</title>
+<link rel="stylesheet" href="../extension/search.css">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--yt-spec-base-background, #fff);
+    color: var(--yt-spec-text-primary, #0f0f0f);
+    font-family: Roboto, Arial, "Microsoft YaHei", sans-serif;
+  }
+  ytd-masthead {
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    padding: 0 16px;
+    background: var(--yt-spec-base-background, #fff);
+    border-bottom: 1px solid rgba(0, 0, 0, .1);
+  }
+  ytd-masthead #start { font-weight: 700; font-size: 18px; white-space: nowrap; }
+  ytd-masthead #center { flex: 1 1 auto; max-width: 640px; height: 36px; border: 1px solid #ccc; border-radius: 18px; }
+  ytd-masthead #end { display: flex; align-items: center; margin-left: auto; }
+  ytd-page-manager { display: block; }
+  ytd-search {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  ytd-search-header-renderer {
+    display: block;
+    height: 56px;
+    padding-top: 16px;
+  }
+  ytd-search-header-renderer .chips {
+    display: inline-flex;
+    gap: 8px;
+    height: 32px;
+    align-items: center;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--yt-spec-badge-chip-background, #f2f2f2);
+    font-size: 14px;
+    color: var(--yt-spec-text-primary, #0f0f0f);
+  }
+  ytd-section-list-renderer { display: block; }
+  #contents .fake-result {
+    margin: 12px 0;
+    padding: 18px;
+    border: 1px dashed #bbb;
+    border-radius: 8px;
+    color: #606060;
+  }
+  #results {
+    margin: 24px;
+    padding: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 12px/1.5 Consolas, monospace;
+    color: #202124;
+    background: #fafafa;
+  }
+  html[dark] #results { color: #eee; background: #181818; border-color: #444; }
+</style>
+</head>
+<body>
+<ytd-masthead>
+  <div id="start">YouTube</div>
+  <div id="center"></div>
+  <div id="end"></div>
+</ytd-masthead>
+<ytd-page-manager>
+  <ytd-search id="search">
+    <ytd-search-header-renderer id="native-header">
+      <div class="chips">全部　视频　Shorts　播放列表</div>
+    </ytd-search-header-renderer>
+    <ytd-section-list-renderer id="native-results" style="min-height:420px">
+      <div id="contents">
+        <div class="fake-result">原生 YouTube 搜索结果（应被双搜视图隐藏，关闭开关后恢复）</div>
+        <div class="fake-result">原生结果第二项</div>
+      </div>
+    </ytd-section-list-renderer>
+  </ytd-search>
+</ytd-page-manager>
+<pre id="results">等待测试…</pre>
+<script src="search-fixture-api.js"></script>
+<script src="../extension/shared.js"></script>
+<script src="../extension/search.js"></script>
+<script src="search-browser-checks.js"></script>
+</body>
+</html>

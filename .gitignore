@@ -1,0 +1,39 @@
+# Generated install packages and extracted historical releases
+/dist/
+*.zip
+*.crx
+
+# Design drafts, local browser screenshots and exploratory snapshots
+/design/
+/tests/*.png
+/tests/opencode-models-snapshot.json
+
+# Local dependencies and test output
+/node_modules/
+/coverage/
+/.cache/
+*.log
+*.tmp
+.tmp-*
+__pycache__/
+*.py[cod]
+
+# Local credentials, environments and browser state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+/auth.json
+/storage-state*.json
+/browser-profile*/
+/playwright/.auth/
+/.dsh/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

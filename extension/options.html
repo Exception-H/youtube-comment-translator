@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>翻译服务设置 · 评论译读</title>
+  <link rel="stylesheet" href="options.css">
+  <script src="shared.js" defer></script>
+  <script src="options.js" defer></script>
+</head>
+<body>
+  <main class="options-page">
+    <header class="page-header">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <div><p class="eyebrow">评论译读 / 翻译设置</p><h1>自动翻译评论，按你的预算选择。</h1></div>
+      <span class="language-mark" aria-hidden="true">译</span>
+    </header>
+    <p class="page-intro">首选 B站 Index-Translate 预设：官方免费公网 API，不用登录、不需要 Key，默认使用 35B 模型；三步即可用——选择 B站预设 → 保存授权 → 测试。也可改选硅基流动零价模型、OpenRouter 仅免费、保留 Google 翻译，或明确选择自定义 AI 服务。打开本页不会自动访问外网；保存并启用 AI 后，已打开的 YouTube 页面会开始翻译可见评论。</p>
+
+    <form id="settingsForm" autocomplete="off" novalidate>
+      <fieldset id="serviceFields" class="service-fields" disabled>
+        <legend>翻译方式</legend>
+        <div class="provider-options">
+          <label class="provider-choice" for="providerGoogle"><input id="providerGoogle" name="provider" type="radio" value="google" checked><span><strong>Google 免费翻译</strong><small>无需密钥，沿用原有评论翻译功能。</small></span></label>
+          <label class="provider-choice" for="providerAI"><input id="providerAI" name="provider" type="radio" value="ai"><span><strong>AI 语境翻译</strong><small>可选 B站官方免费公网接口（免 Key）、硅基流动零价模型、OpenRouter 仅免费，或自己的聊天接口。</small></span></label>
+        </div>
+      </fieldset>
+
+      <section class="configuration" aria-labelledby="configurationHeading">
+        <div class="section-heading"><div><p class="eyebrow">AI 配置</p><h2 id="configurationHeading">选择服务和模型</h2></div><span id="modeBadge" class="mode-badge">正在读取…</span></div>
+        <div class="field preset-field"><label for="preset">服务预设</label><select id="preset" disabled><option value="index-translate-free" selected>B站 Index-Translate · 官方免费公网 API（免 Key）</option><option value="siliconflow-free">硅基流动 · 官方中国站零价模型</option><option value="openrouter-free">OpenRouter · 仅免费模型</option><option value="deepseek">DeepSeek · 自付费用</option><option value="custom">自定义 OpenAI 兼容接口 · 可付费</option></select><p class="field-hint">选择预设会开启 AI 模式并清空旧密钥，旧配置不会自动转换。B站预设固定官方免费公网接口与 2B/9B/35B-A3B 模型，不需要 Key；硅基流动与 OpenRouter 预设限制为免费/零价调用；DeepSeek 和自定义接口可能收费。</p></div>
+        <fieldset id="aiFields" class="ai-fields" disabled>
+          <legend class="visually-hidden">AI 接口与语境</legend>
+          <div id="indexPanel" class="free-panel index-panel" hidden>
+            <div class="free-heading"><span class="free-label">B站 Index-Translate · 官方免费公网 API</span><p>官方免费公网接口，不用登录、不需要 Key；单条翻译，不与批量合并。默认使用 35B（Index-Translate-35B-A3B），也可改选 9B 或 2B。免费公共接口可能限流，不提供长期可用性承诺（无长期 SLA）。</p></div>
+            <div class="free-model-row">
+              <div class="field"><label for="indexModel">模型</label><select id="indexModel"><option value="Index-Translate-35B-A3B" selected>Index-Translate-35B-A3B · 默认首选</option><option value="Index-Translate-9B">Index-Translate-9B</option><option value="Index-Translate-2B">Index-Translate-2B</option></select></div>
+            </div>
+            <p class="field-hint">接口地址固定为 https://index-translate.bilibili.com/v1，模型限定为官方公开的 2B / 9B / 35B-A3B；保存时会请求访问该来源的权限。入门顺序：选择 B站预设 → 保存授权 → 测试。打开本页不会访问外网，也不会向其他服务发送 Key。</p>
+          </div>
+          <div id="freePanel" class="free-panel" hidden>
+            <div class="free-heading"><span class="free-label">OpenRouter 仅免费 · 不付费回退</span><p>自动合并最多 6 条评论/请求，按 3.2 秒间隔发送；候选繁忙或译文无效时自动换模型，全局限流则暂停，不切换到付费模型。</p></div>
+            <div class="free-model-row">
+              <div class="field"><label for="freeModel">免费模型</label><select id="freeModel"><option value="openrouter/free">免费自动路由 · 通用模型优先 · openrouter/free</option></select></div>
+              <button id="refreshFreeModels" class="secondary-button" type="button" disabled>刷新免费模型</button>
+            </div>
+            <p class="field-hint">自动模式在本机从零价目录挑选通用模型：优先 Nemotron Ultra，其次 Super VL / Lightning，再考虑 Gemma / Xing，并排除安全分类、代码等专用模型；无需你判断原文语言。候选上游繁忙、503 或解析无效时会自动换模型，失败最多 3 次请求、每次至少间隔 3.2 秒，每次尝试都会消耗免费请求；全局限流、每日额度不足、认证或隐私限制会停止，不切换付费模型。固定 :free 模型只调用该模型，不自动切换。刷新后也可选择固定的免费模型；后台会再次核验免费价格。免费模型与上游可用性会变化，不承诺始终通用或所有上游可用。</p>
+            <p id="catalogStatus" class="status" role="status" aria-live="polite">模型目录只在你点击刷新后获取，不需要 API Key。</p>
+          </div>
+          <div id="sfPanel" class="free-panel sf-panel" hidden>
+            <div class="free-heading"><span class="free-label">硅基流动 · 官方中国站零价</span><p>使用硅基流动官方中国站标价 0 元的对话模型，单条翻译、不与批量合并；后台按已保存的 Key 读取官方零价目录并与账户可用模型取交集，不使用 Pro/ 付费模型。价格可能变化，核验失败会停止，不会转为付费。</p></div>
+            <div class="free-model-row">
+              <div class="field"><label for="sfModel">零价模型候选</label><select id="sfModel"><option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B · 官方零价 · 待账户核验</option><option value="Qwen/Qwen3.5-4B">Qwen/Qwen3.5-4B · 官方零价 · 待账户核验</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen/Qwen2.5-7B-Instruct · 官方零价 · 待账户核验</option></select></div>
+              <button id="sfRefresh" class="secondary-button" type="button" disabled>刷新账户零价模型</button>
+            </div>
+            <p class="field-hint">目录来源：<a href="https://www.siliconflow.cn/models" target="_blank" rel="noopener">硅基流动官方中国站「模型与价格」</a>中标价 0 元、且当前账户可用的模型交集；这里不凭模型名里有没有「Pro」判断免费，也不会列出付费模型。刷新只读已保存的 Key，需先保存本页配置且没有未保存更改。Qwen 系列会明确关闭思考输出，只取译文；单条请求，不占用 OpenRouter 每日免费次数。</p>
+            <p id="sfStatus" class="status" role="status" aria-live="polite">保存硅基流动配置后可刷新账户零价模型；默认 Qwen/Qwen3-8B。</p>
+          </div>
+          <div class="field"><label for="baseUrl">API Base URL</label><input id="baseUrl" type="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://index-translate.bilibili.com/v1" aria-describedby="baseUrlHint"><p id="baseUrlHint" class="field-hint">B站 Index-Translate 固定使用官方公网 https://index-translate.bilibili.com/v1；硅基流动仅免费模式固定使用官方中国站 https://api.siliconflow.cn/v1，OpenRouter 仅免费模式固定使用 OpenRouter；其他模式可填基础地址或完整 /chat/completions 地址。公网须 HTTPS，本机 localhost、127.0.0.1 可用 HTTP。</p></div>
+          <div class="field-grid">
+            <div class="field"><label for="model">模型名称</label><input id="model" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Index-Translate-35B-A3B"><p class="field-hint">B站预设仅限 Index-Translate-2B / 9B / 35B-A3B（默认 35B）；硅基流动零价模式可直接填写模型名，或从上方候选/刷新结果中选择；OpenRouter 仅免费模式只能从上方列表选择。自定义模式须填写服务实际支持的聊天模型。</p></div>
+            <div id="apiKeyField" class="field"><label for="apiKey">API Key</label><input id="apiKey" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="仅在本机填写" aria-describedby="keyHint"><p id="keyHint" class="field-hint">B站预设不需要 Key，此字段会隐藏并清空；切出 B站预设后可重新填写，且不会沿用旧服务的 Key。硅基流动与 OpenRouter 都需要各自的 Key；硅基流动账号需按官方要求完成实名。密钥保存在本机扩展存储中，未加密；不要发到聊天中。</p></div>
+          </div>
+          <label class="context-choice" for="useContext"><input id="useContext" type="checkbox" checked><span><strong>使用评论语境</strong><small>附带视频标题和当前回复的父评论（如果已加载）。关闭后仅发送待翻译评论。</small></span></label>
+        </fieldset>
+        <p id="configurationHint" class="configuration-hint">正在读取本机设置…</p>
+      </section>
+      <div class="save-row"><button id="saveSettings" class="primary-button" type="submit" disabled>保存设置</button><p id="saveStatus" class="status" role="status" aria-live="polite">正在读取本机设置…</p></div>
+    </form>
+
+    <section id="dualSearchSection" class="dual-search-section" aria-labelledby="dualSearchHeading">
+      <span id="dual-search" class="anchor-mark" aria-hidden="true"></span>
+      <div class="section-heading"><div><p class="eyebrow">YouTube 搜索</p><h2 id="dualSearchHeading">中英双搜</h2></div><span class="mode-badge">独立于评论翻译</span></div>
+      <label class="dual-search-choice" for="dualSearch">
+        <input id="dualSearch" type="checkbox" checked>
+        <span><strong>在 YouTube 搜索页开启中英双搜</strong><small>同一来源发起两路搜索：中文查询自动转成英文再搜一次，英文视频标题附上中文译名，左右两栏对照阅读。</small></span>
+      </label>
+      <div class="dual-search-actions">
+        <button id="grantDualSearch" class="secondary-button" type="button">授权中英双搜</button>
+        <p id="dualSearchStatus" class="status" role="status" aria-live="polite"></p>
+      </div>
+      <p class="field-hint">使用 B站免 Key 的 Index-Translate 服务把中文 query 转成英文、并给英文视频标题生成中文译名；不需要 API Key，也不会额外打开后台标签页。桌面端左右两栏各自独立滚动，窄屏改为标签切换。默认开启，但只有取得 B站来源权限后才会发送翻译请求。此开关独立于评论翻译：不会切换当前 AI 服务，也不会读取或发送任何 Key。</p>
+    </section>
+
+    <section id="freeQuotaSection" class="quota-section" aria-labelledby="quotaHeading" hidden>
+      <div class="quota-heading"><div><p class="eyebrow">OpenRouter 免费请求</p><h2 id="quotaHeading">查看当前免费请求额度</h2></div><button id="freeStatus" class="secondary-button" type="button" disabled>查询免费额度</button></div>
+      <p class="field-hint">仅 OpenRouter 仅免费配置显示本节；硅基流动零价模式为单条翻译，不占用 OpenRouter 每日免费次数。需先保存仅免费配置和 Key，再主动查询；这里只显示免费请求使用情况，不显示 Key 或账户余额；请求数不等于评论数。</p>
+      <p id="quotaStatus" class="status" role="status" aria-live="polite">尚未查询。</p>
+      <p class="quota-notice">免费模型常见上限为每分钟 20 次请求。累计购买额度低于 10 美元时通常为每日 50 次免费请求，达到后通常为每日 1,000 次；具体以账户和平台规则为准。充值是可选项，不是使用本插件的必要条件。</p>
+    </section>
+
+    <section class="test-section" aria-labelledby="testHeading">
+      <div><p class="eyebrow">连接测试</p><h2 id="testHeading">先确认译文能正常返回</h2><p id="testHint" class="field-hint">先选择 AI 语境翻译并保存配置，再测试连接。</p></div>
+      <button id="testAI" class="secondary-button" type="button" disabled>测试 AI 翻译</button>
+      <p class="test-notice">点击测试会向已保存的服务发送固定样例，不发送当前网页评论。B站预设向官方免费公网接口发送一条单条请求，不需要 Key，可能被限流；硅基流动零价模式发送一条单条请求，不占用 OpenRouter 免费次数；OpenRouter 仅免费模式消耗免费请求额度（失败换模型时最多 3 次）；其他模式可能收费。</p>
+      <p id="testStatus" class="status" role="status" aria-live="polite"></p>
+      <div id="testResult" class="test-result" hidden><span class="result-label">样例译文</span><p id="testText" dir="auto"></p><p id="testModel" class="actual-model" hidden></p></div>
+    </section>
+
+    <footer class="privacy"><p>评论会发送至所选服务，上游可能记录评论；AI 模式可附带标题和父评论。保存 AI 配置时，Chrome 会请求访问该接口来源的权限；硅基流动会同时申请接口与官网两个来源。B站预设只向官方 index-translate.bilibili.com 发送评论，不需要也不会使用任何 Key。</p><p>免费不是永久承诺：模型、额度和上游政策可能变化。B站官方免费公网接口可能限流，没有长期可用性承诺（无长期 SLA），也可能随时调整模型或关闭；本机尚未实测其译文质量。硅基流动零价模式只使用官方中国站标价 0 元且账户可用的模型，价格调整或核验失败会停止，不转 Pro/ 付费，也不承诺永久零价；本机尚未实测其译文质量。OpenRouter 仅免费模式在本机挑选通用免费模型；遇到全局限流、每日额度不足、认证或隐私限制会暂停，不自动回退到付费模型。收费服务必须明确切换预设后才能使用。</p><p>Google 模式无需密钥，可随时切回。自定义服务须支持 OpenAI 兼容聊天协议；图片接口不一定支持聊天。</p></footer>
+  </main>
+</body>
+</html>
