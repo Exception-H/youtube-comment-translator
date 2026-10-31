@@ -714,6 +714,9 @@
     if (options.settings) {
       box.append(button('打开设置', PREFIX + '-action', () => openOptions()));
     }
+    if (options.reload) {
+      box.append(button('刷新页面', PREFIX + '-action', () => location.reload()));
+    }
     if (options.retry && typeof options.retryAction === 'function') {
       const retry = button(options.retryLabel || '重试', PREFIX + '-action', options.retryAction);
       retry.classList.add(PREFIX + '-retry');
@@ -1091,10 +1094,10 @@
           retryAction: () => void translateQuery(view)
         });
       } else {
-        setPaneState(pane, 'error', errorText(error), {
-          retry: true,
-          retryAction: () => void translateQuery(view)
-        });
+        const contextGone = isContextError(error && error.message);
+        setPaneState(pane, 'error', errorText(error), contextGone
+          ? { reload: true }
+          : { retry: true, retryAction: () => void translateQuery(view) });
       }
       updateMore(pane);
     }
