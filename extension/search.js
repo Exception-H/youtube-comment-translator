@@ -572,7 +572,7 @@
       // never let that erase the position we are keeping for the next tab.
       if (view.narrow && view.activePane !== key) return;
       pane.savedScroll = scrollBody.scrollTop;
-      if (key !== EN || titleTick) return;
+      if (titleTick) return;
       titleTick = setTimeout(() => {
         titleTick = 0;
         const current = state.view;
@@ -652,7 +652,7 @@
     view.host.style.height = height + 'px';
     const narrow = window.innerWidth < NARROW_WIDTH || view.host.clientWidth < NARROW_HOST_WIDTH;
     if (view.narrow === narrow) {
-      queueVisibleTitles(view, view.panes[EN]);
+      for (const paneKey of [ZH, EN]) queueVisibleTitles(view, view.panes[paneKey]);
       return;
     }
     for (const key of [ZH, EN]) {
@@ -669,7 +669,7 @@
         if (pane) pane.scrollBody.scrollTop = pane.savedScroll || 0;
       }
     }
-    queueVisibleTitles(view, view.panes[EN]);
+    for (const paneKey of [ZH, EN]) queueVisibleTitles(view, view.panes[paneKey]);
   }
 
   function setActivePane(view, key, force = false) {
@@ -687,7 +687,7 @@
     }
     const current = view.panes[key];
     if (current && view.narrow) current.scrollBody.scrollTop = current.savedScroll || 0;
-    if (key === EN && current) queueVisibleTitles(view, current);
+    if (current) queueVisibleTitles(view, current);
   }
 
   /* ------------------------------------------------------------------- panes */
@@ -794,6 +794,17 @@
     meta.append(element('span', PREFIX + '-meta-item', text));
   }
 
+  // A title needs translation when it has almost no Chinese characters. Chinese
+  // titles (common in the left pane) are left untouched.
+  function needsTitleTranslation(text) {
+    if (typeof text !== 'string') return false;
+    const chars = Array.from(text.trim());
+    if (!chars.length) return false;
+    let han = 0;
+    for (const ch of chars) if (CHINESE.test(ch)) han++;
+    return han / chars.length < 0.15;
+  }
+
   function renderCard(view, pane, item) {
     const card = element('article', PREFIX + '-card');
     card.dataset.ytccSearchId = item.id;
@@ -827,7 +838,8 @@
     title.className = PREFIX + '-title';
     title.href = item.url;
     title.textContent = item.title;
-    title.lang = pane.key === EN ? 'en' : 'zh-CN';
+    const translateTitle = needsTitleTranslation(item.title);
+    title.lang = translateTitle ? 'en' : 'zh-CN';
     titleWrap.append(title);
 
     const badge = element('span', PREFIX + '-badge ' + PREFIX + '-badge-translated', '中文译名');
@@ -851,7 +863,7 @@
       enqueueTitle(current, pane, rec, true);
     });
     retry.hidden = true;
-    if (pane.key === EN) titleWrap.append(badge, toggle, retry, original);
+    if (translateTitle) titleWrap.append(badge, toggle, retry, original);
 
     const meta = element('div', PREFIX + '-meta');
     appendMeta(meta, item.channel);
@@ -876,7 +888,7 @@
       toggle,
       original,
       retry,
-      titleState: pane.key === EN ? 'idle' : 'done',
+      titleState: translateTitle ? 'idle' : 'done',
       generation: pane.generation
     };
     return rec;
@@ -909,7 +921,7 @@
       const rec = renderCard(view, pane, item);
       pane.cards.set(item.id, rec);
       pane.list.append(rec.card);
-      if (pane.key === EN) observeEnglishCard(view, pane, rec);
+      if (rec.titleState === 'idle') observeTitleCard(view, pane, rec);
     }
 
     pane.continuation = next;
@@ -931,7 +943,7 @@
     updateTabCounts(view);
     markCrossMatches(view);
     if (options.first) pane.scrollBody.scrollTop = 0;
-    if (pane.key === EN) queueVisibleTitles(view, pane);
+    if (pane.titleQueue.length === 0) queueVisibleTitles(view, pane);
     return { duplicate };
   }
 
@@ -1089,7 +1101,7 @@
   }
 
   function queueVisibleTitles(view, pane) {
-    if (!isLive(view) || pane.key !== EN) return;
+    if (!isLive(view) || !pane) return;
     const root = pane.scrollBody.getBoundingClientRect();
     if (root.bottom <= root.top) return;
     for (const rec of pane.cards.values()) {
@@ -1115,14 +1127,14 @@
     view.observers.push(pane.titleObserver);
   }
 
-  function observeEnglishCard(view, pane, rec) {
-    if (pane.key !== EN) return;
+  function observeTitleCard(view, pane, rec) {
+    if (rec.titleState !== 'idle') return;
     ensureTitleObserver(view, pane);
     if (pane.titleObserver) pane.titleObserver.observe(rec.card);
   }
 
   function enqueueTitle(view, pane, rec, force = false) {
-    if (!isLive(view) || pane.key !== EN || state.contextGone) return;
+    if (!isLive(view) || !pane || state.contextGone) return;
     if (rec.generation !== pane.generation || pane.cards.get(rec.item.id) !== rec) return;
     if (!force && rec.titleState !== 'idle') return;
     rec.titleState = 'queued';
