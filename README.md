@@ -1,6 +1,6 @@
-# 评论译读 · YouTube 中文评论
+# 评论译读 · 视频评论中文翻译
 
-版本：1.5.2。一个装进 Chrome 的小工具，帮你看懂 YouTube：把评论和视频标题翻成中文，还能用中文搜到英文视频。
+版本：1.5.3。一个装进 Chrome 的小工具，帮你看懂 YouTube：把评论和视频标题翻成中文，还能用中文搜到英文视频。（与 YouTube 无隶属关系，非官方。）
 
 ## 它做什么
 
@@ -13,7 +13,7 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/Exception-H/youtube-comment-translator/releases/latest) 下载最新的 `评论译读-Chrome-v1.5.2.zip`。
+1. 从 [Releases](https://github.com/Exception-H/youtube-comment-translator/releases/latest) 下载最新的 `评论译读-Chrome-v1.5.3.zip`。
 2. 解压。里面有一个 `extension` 文件夹，请保留它，不要删。
 3. 打开 Chrome 的 `chrome://extensions`，开启右上角「开发者模式」。
 4. 点「加载已解压的扩展程序」，选择那个 `extension` 文件夹。

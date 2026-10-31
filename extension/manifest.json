@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "评论译读 · YouTube 中文评论",
-  "version": "1.5.2",
-  "description": "YouTube 评论中文翻译与中英双搜：中文输入、双栏结果、英文标题与首页标题中文显示。",
+  "name": "评论译读 · 视频评论中文翻译",
+  "version": "1.5.3",
+  "description": "视频评论中文翻译与中英双搜：中文输入、双栏结果、标题中文显示。适用于 YouTube（非官方）。",
   "minimum_chrome_version": "109",
   "permissions": ["storage", "activeTab", "declarativeNetRequestWithHostAccess"],
   "host_permissions": ["https://clients5.google.com/*"],
