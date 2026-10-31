@@ -37,3 +37,5 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+docs/store-*.md
