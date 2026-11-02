@@ -1,22 +1,31 @@
-/* Chinese translation line under homepage video titles. Scoped to the injected class. */
+/* Chinese translation under video titles. The translation is the primary line;
+ * the original non-Chinese title is demoted to a smaller secondary line. */
 .ytcc-title-translation {
-  display: block;
+  display: -webkit-box;
   margin-top: 2px;
-  color: var(--yt-spec-text-secondary, #606060);
-  font-size: 1.2rem;
-  font-weight: 400;
+  color: var(--yt-spec-text-primary, #0f0f0f);
+  font-size: 1.6rem;
+  font-weight: 500;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   text-decoration: none;
 }
+
+/* Applied only after a translation exists, so untranslated titles keep their
+ * normal YouTube styling. */
+.ytcc-title-original {
+  color: var(--yt-spec-text-secondary, #606060) !important;
+  font-size: 1.2rem !important;
+  font-weight: 400 !important;
+}
+
 ytd-rich-grid-slim-media .ytcc-title-translation,
 ytd-compact-video-renderer .ytcc-title-translation {
-  font-size: 1rem;
+  font-size: 1.2rem;
 }
 @media (max-width: 680px) {
-  .ytcc-title-translation { font-size: 1.1rem; }
+  .ytcc-title-translation { font-size: 1.4rem; }
 }

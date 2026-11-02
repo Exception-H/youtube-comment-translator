@@ -38,6 +38,8 @@ test('homepage title helpers translate English and skip Chinese', () => {
   assert.equal(home.isHomePath('/'), true);
   assert.equal(home.isHomePath('/feed/subscriptions'), true);
   assert.equal(home.isHomePath('/results'), false);
+  assert.equal(home.isSearchPath('/results'), true);
+  assert.equal(home.isSearchPath('/'), false);
 });
 
 test('homepage title translation needs no search session and caches by text', async () => {

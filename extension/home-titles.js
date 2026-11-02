@@ -1,11 +1,14 @@
-/* Homepage video title translation. Reuses the keyless B站 Index-Translate bridge.
- * Each visible English title gets one Chinese line below it. Runs only on the
- * YouTube home/feed pages; the results page is handled by search.js. */
+/* Video title translation for YouTube's own pages. Reuses the keyless B站
+ * Index-Translate bridge. Each visible non-Chinese title gets one Chinese line
+ * below it. Runs on the home/feed pages and on native search results; when the
+ * dual-search view takes over a Chinese query, search.js renders its own panes
+ * and this script stays out of the way. */
 (function (root) {
   'use strict';
 
   const MAX_TEXT = 500;
   const MAX_RETRIES = 2;
+  const RETRY_AFTER_MS = 30000;
   const CONCURRENCY = 2;
   const SELECTOR = [
     'ytd-rich-item-renderer a#video-title-link',
@@ -16,7 +19,12 @@
     'ytd-rich-item-renderer .yt-lockup-metadata-view-model__title',
     'yt-lockup-view-model .yt-lockup-metadata-view-model__title',
     'ytd-rich-item-renderer h3 a[href*="/watch"]',
-    'ytd-video-renderer #video-title'
+    'ytd-video-renderer #video-title',
+    'ytd-video-renderer h3 a[href*="/watch"]',
+    'ytd-compact-video-renderer #video-title',
+    'ytd-playlist-renderer #video-title',
+    'ytd-radio-renderer #video-title',
+    'ytd-reel-item-renderer #video-title'
   ].join(',');
 
   function normalize(value) { return String(value == null ? '' : value).replace(/\s+/g, ' ').trim(); }
@@ -39,12 +47,16 @@
     return han / letters.length < 0.15;
   }
 
+  function isSearchPath(pathname) {
+    return pathname === '/results';
+  }
+
   function isHomePath(pathname) {
     if (pathname === '/' || pathname === '') return true;
     return pathname === '/feed/subscriptions' || pathname === '/feed/trending' || pathname === '/feed/explore';
   }
 
-  const api = { pickTitleText, shouldTranslateTitle, isHomePath };
+  const api = { pickTitleText, shouldTranslateTitle, isHomePath, isSearchPath };
   root.YTCHomeTitles = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
@@ -58,7 +70,7 @@
   let active = 0;
   let epoch = 0;
   const queue = [];
-  const tracked = new WeakSet();
+  let tracked = new WeakSet();
 
   function settingsEnabled(value) {
     if (value && typeof value === 'object' && typeof value.dualSearch === 'boolean') return value.dualSearch;
@@ -108,8 +120,28 @@
     element.removeAttribute('data-ytcc-title-tries');
   }
 
+  function dualViewActive() {
+    const host = document.getElementById('ytcc-search-host');
+    return !!host && host.isConnected;
+  }
+
+  function searchQueryHasChinese() {
+    const query = new URLSearchParams(location.search).get('search_query') || '';
+    return /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(query);
+  }
+
   function collect() {
-    if (!enabled || !isHomePath(location.pathname)) return;
+    const pathname = location.pathname;
+    const search = isSearchPath(pathname);
+    if (!enabled || (!search && !isHomePath(pathname))) return;
+    if (search) {
+      // A Chinese query is rendered by the dual-search panes, which translate
+      // their own titles; only the native results page needs help here.
+      if (dualViewActive() || searchQueryHasChinese()) {
+        if (document.querySelector('.ytcc-title-translation')) clearAll();
+        return;
+      }
+    }
     ensureObserver();
     const nodes = document.querySelectorAll(SELECTOR);
     for (const element of nodes) {
@@ -119,7 +151,7 @@
       // both match, but only one Chinese line should be added per title.
       const outer = element.parentElement && element.parentElement.closest(SELECTOR);
       if (outer && outer !== element) continue;
-      const item = element.closest('ytd-rich-item-renderer, yt-lockup-view-model, ytd-rich-grid-media');
+      const item = element.closest('ytd-rich-item-renderer, yt-lockup-view-model, ytd-rich-grid-media, ytd-video-renderer, ytd-compact-video-renderer, ytd-playlist-renderer, ytd-radio-renderer, ytd-reel-item-renderer');
       if (item && item.querySelector('.ytcc-title-translation')) continue;
       if (translationFor(element)) continue;
       const text = pickTitleText(element);
@@ -129,6 +161,7 @@
       if (observer) observer.observe(element);
       else enqueue(element);
     }
+    queueVisibleNow();
   }
 
   function enqueue(element) {
@@ -137,6 +170,28 @@
     element.setAttribute('data-ytcc-title-state', 'queued');
     queue.push(element);
     pump();
+  }
+
+  // IntersectionObserver can miss cards that YouTube renders below the fold,
+  // especially inside its own scrolling containers. On any scroll, queue the
+  // titles that are now near the viewport.
+  function queueVisibleNow() {
+    if (!enabled) return;
+    const pathname = location.pathname;
+    if (!isHomePath(pathname) && !isSearchPath(pathname)) return;
+    if (isSearchPath(pathname) && (dualViewActive() || searchQueryHasChinese())) return;
+    const nodes = document.querySelectorAll(SELECTOR);
+    for (const element of nodes) {
+      if (element.getAttribute('data-ytcc-title-state') !== 'idle') continue;
+      const rect = element.getBoundingClientRect();
+      if (rect.bottom > -200 && rect.top < window.innerHeight + 200) enqueue(element);
+    }
+  }
+
+  let scrollTick = 0;
+  function onScroll() {
+    if (scrollTick) return;
+    scrollTick = setTimeout(() => { scrollTick = 0; queueVisibleNow(); }, 100);
   }
 
   function pump() {
@@ -173,8 +228,21 @@
   function failElement(element) {
     const tries = Number(element.getAttribute('data-ytcc-title-tries') || '0') + 1;
     element.setAttribute('data-ytcc-title-tries', String(tries));
-    element.setAttribute('data-ytcc-title-state', tries > MAX_RETRIES ? 'failed' : 'idle');
-    if (tries > MAX_RETRIES && observer) { try { observer.observe(element); } catch { /* ignore */ } }
+    if (tries > MAX_RETRIES) {
+      element.setAttribute('data-ytcc-title-state', 'failed');
+      // Free endpoints occasionally rate-limit a burst. Retry later instead of
+      // leaving the whole page without translations until a manual refresh.
+      const target = element;
+      setTimeout(() => {
+        if (!enabled || !target.isConnected) return;
+        if (target.getAttribute('data-ytcc-title-state') !== 'failed') return;
+        target.setAttribute('data-ytcc-title-tries', '0');
+        target.setAttribute('data-ytcc-title-state', 'idle');
+        queueVisibleNow();
+      }, RETRY_AFTER_MS);
+    } else {
+      element.setAttribute('data-ytcc-title-state', 'idle');
+    }
   }
 
   function applyTranslation(element, text) {
@@ -183,6 +251,7 @@
     node.className = 'ytcc-title-translation';
     node.lang = 'zh-CN';
     node.textContent = text;
+    element.classList.add('ytcc-title-original');
     if (element.insertAdjacentElement) element.insertAdjacentElement('afterend', node);
     else if (element.parentNode) element.parentNode.insertBefore(node, element.nextSibling);
   }
@@ -191,7 +260,9 @@
     epoch++;
     queue.length = 0;
     for (const node of document.querySelectorAll('.ytcc-title-translation')) node.remove();
+    for (const element of document.querySelectorAll('.ytcc-title-original')) element.classList.remove('ytcc-title-original');
     for (const element of document.querySelectorAll('[data-ytcc-title-state]')) resetElement(element);
+    tracked = new WeakSet();
     if (observer) { try { observer.disconnect(); } catch { /* ignore */ } observer = null; }
   }
 
@@ -224,6 +295,8 @@
     }
     document.addEventListener('yt-navigate-finish', () => { clearAll(); enabled = settingsEnabled(); if (enabled) collect(); }, true);
     document.addEventListener('yt-page-data-updated', schedule, true);
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    window.addEventListener('resize', onScroll);
     window.addEventListener('popstate', schedule);
   }
 
